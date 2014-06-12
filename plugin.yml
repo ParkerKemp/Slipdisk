@@ -1,0 +1,16 @@
+name: Slipdisk
+main: com.spinalcraft.slipdisk.Slipdisk
+version: 1.0
+
+depend: [Spinalpack]
+
+commands:
+  slipdisk:
+    description: Learn about Slipdisk
+    usage: Usage - /slipdisk
+    aliases: slip
+    
+  deleteslip:
+    description: Delete your slip entirely (useful in case it's broken because of Parker's incompetence)
+    usage: Usage - /deleteslip
+    
