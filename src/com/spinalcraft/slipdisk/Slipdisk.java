@@ -81,6 +81,10 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		Player player = event.getPlayer();
 		
 		Slip slip = Spinalpack.slip(truncatedName(player.getName()));
+		if(slip == null){
+			event.setCancelled(true);
+			return;
+		}
 		if(!slip.sign1Valid())
 			slipno = 1;
 		else if(!slip.sign2Valid())
