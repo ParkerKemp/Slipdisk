@@ -80,7 +80,9 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		
 		Player player = event.getPlayer();
 		
+		//Update: check with UUID instead
 		Slip slip = Spinalpack.slip(truncatedName(player.getName()));
+		
 		if(slip == null){
 			event.setCancelled(true);
 			return;
@@ -98,6 +100,8 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		
 		String trunc = truncatedName(player.getName());
 		
+		//Update: check DB for existing trunc name on a separate record. If so, append "#1" to this one, and "#0" to the original slip
+		//(both signs and DB record)
 		event.setLine(1, trunc);
 		
 		Spinalpack.insertSlipNode(trunc, event.getBlock().getLocation(), player.getLocation(), slipno);
