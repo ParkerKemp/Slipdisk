@@ -81,7 +81,9 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		Player player = event.getPlayer();
 		
 		//Update: check with UUID instead
-		Slip slip = Spinalpack.slip(truncatedName(player.getName()));
+		//Slip slip = Spinalpack.slip(truncatedName(player.getName()));
+		String uuid = player.getUniqueId().toString();
+		Slip slip = Spinalpack.slipFromUuid(uuid);
 		
 		if(slip == null){
 			event.setCancelled(true);
@@ -104,7 +106,7 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		//(both signs and DB record)
 		event.setLine(1, trunc);
 		
-		Spinalpack.insertSlipNode(trunc, event.getBlock().getLocation(), player.getLocation(), slipno);
+		Spinalpack.insertSlipNode(uuid, trunc, event.getBlock().getLocation(), player.getLocation(), slipno);
 		
 		player.sendMessage(Spinalpack.code(Co.GOLD) + "Created a new slip gate!");
 		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName() + " created a slip gate!");
@@ -128,7 +130,7 @@ public class Slipdisk extends JavaPlugin implements Listener{
 			return;
 		Player player = event.getPlayer();
 		
-		Slip slip = Spinalpack.slip(sign.getLine(1));
+		Slip slip = Spinalpack.slipFromUsername(sign.getLine(1));
 		
 		if(slip.noSlip()){
 			player.sendMessage(Spinalpack.code(Co.RED) + "Error: Unable to find this endpoint in the database!");
@@ -169,7 +171,6 @@ public class Slipdisk extends JavaPlugin implements Listener{
 							+ "this shit isn't working!");
 					event.setCancelled(true);
 				}
-				
 			}
 		}
 	}
@@ -195,8 +196,7 @@ public class Slipdisk extends JavaPlugin implements Listener{
 	}
 	
 	private boolean deleteSlip(Player player){
-		String trunc = truncatedName(player.getName());
-		Slip slip = Spinalpack.slip(trunc);
+		Slip slip = Spinalpack.slipFromUuid(player.getUniqueId().toString());
 		Block block;
 		if(!Spinalpack.deleteSlip(truncatedName(player.getName())))
 			return false;
@@ -219,7 +219,7 @@ public class Slipdisk extends JavaPlugin implements Listener{
 	}
 	
 	private boolean unlinkSlipSign(Sign sign){
-		Slip slip = Spinalpack.slip(sign.getLine(1));
+		Slip slip = Spinalpack.slipFromUsername(sign.getLine(1));
 		if(slip.sign1Valid())
 			if(slip.sign1.equals(sign.getLocation()))
 				return Spinalpack.unlinkSign(sign.getLine(1), 1);
