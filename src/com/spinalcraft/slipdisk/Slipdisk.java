@@ -131,7 +131,10 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		Player player = event.getPlayer();
 		
 		Slip slip = Spinalpack.slipFromUsername(sign.getLine(1));
-		
+		if(slip == null){
+			player.sendMessage(Spinalpack.code(Co.RED) + "Critical database error!");
+			return;
+		}
 		if(slip.noSlip()){
 			player.sendMessage(Spinalpack.code(Co.RED) + "Error: Unable to find this endpoint in the database!");
 			return;
