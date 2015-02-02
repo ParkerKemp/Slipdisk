@@ -1,6 +1,11 @@
 package com.spinalcraft.slipdisk;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
@@ -24,7 +29,6 @@ import com.spinalcraft.spinalpack.Slip;
 import com.spinalcraft.spinalpack.Spinalpack;
 
 public class Slipdisk extends JavaPlugin implements Listener{
-
 	ConsoleCommandSender console;
 	
 	@Override
@@ -33,8 +37,171 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		console.sendMessage(Spinalpack.code(Co.BLUE) + "Slipdisk online!");
 		getServer().getPluginManager().registerEvents((Listener)this,  this);
 		
-		Spinalpack.createSlipTable();
+		//Spinalpack.createSlipTable();
+		createSlipTable();
 	}
+	
+	private void createSlipTable(){
+		String query = "CREATE TABLE IF NOT EXISTS Slips (uuid VARCHAR(36) PRIMARY KEY, username VARCHAR(31), "
+				+ "timeCreated INT, cooldown INT, w1 VARCHAR(31), sx1 FLOAT, sy1 FLOAT, sz1 FLOAT, x1 FLOAT, "
+				+ "y1 FLOAT, z1 FLOAT, pitch1 FLOAT, yaw1 FLOAT, w2 VARCHAR(31), sx2 FLOAT, sy2 FLOAT, sz2 FLOAT, "
+				+ "x2 FLOAT, y2 FLOAT, z2 FLOAT, pitch2 FLOAT, yaw2 FLOAT)";
+		Spinalpack.update(query);
+	}
+	
+	private void insertSlip(String uuid, String username, Location sLocation, Location pLocation, int slipno){
+		String query;
+		PreparedStatement stmt;
+		query = String.format("INSERT INTO Slips (uuid, username, timeCreated, cooldown, w%d, sx%d, "
+				+ "sy%d, sz%d, x%d, y%d, z%d, pitch%d, yaw%d) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
+				+ "ON DUPLICATE KEY UPDATE timeCreated = ?, cooldown = cooldown + 30, w%d = ?, sx%d = ?, "
+				+ "sy%d = ?, sz%d = ?, x%d = ?, y%d = ?, z%d = ?, pitch%d = ?, yaw%d = ?", 
+				slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, 
+				slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno, slipno);
+		try {
+			stmt = Spinalpack.prepareStatement(query);
+			
+			stmt.setString(1, uuid);
+			stmt.setString(2, username);
+			stmt.setLong(3, System.currentTimeMillis() / 1000);
+			stmt.setInt(4, -300);
+			stmt.setString(5, sLocation.getWorld().getName());
+			stmt.setFloat(6, sLocation.getBlockX());
+			stmt.setFloat(7, sLocation.getBlockY());
+			stmt.setFloat(8, sLocation.getBlockZ());
+			stmt.setDouble(9, sLocation.getX());
+			stmt.setDouble(10, sLocation.getY());
+			stmt.setDouble(11, sLocation.getZ());
+			stmt.setDouble(12, sLocation.getPitch());
+			stmt.setDouble(13, sLocation.getYaw());
+			stmt.setLong(14, System.currentTimeMillis() / 1000);
+			stmt.setString(15, sLocation.getWorld().getName());
+			stmt.setFloat(16, sLocation.getBlockX());
+			stmt.setFloat(17, sLocation.getBlockY());
+			stmt.setFloat(18, sLocation.getBlockZ());
+			stmt.setDouble(19, sLocation.getX());
+			stmt.setDouble(20, sLocation.getY());
+			stmt.setDouble(21, sLocation.getZ());
+			stmt.setDouble(22, sLocation.getPitch());
+			stmt.setDouble(23, sLocation.getYaw());
+			
+			stmt.executeUpdate();
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
+	}
+	
+	/*
+public static void insertSlipNode(String uuid, String username, Location sLocation, Location pLocation, int slipno){
+		String query;
+		if(slipno == 1)
+			query = "INSERT INTO Slips (uuid, username, timeCreated, cooldown, w1, sx1, sy1, sz1, x1, y1, z1, pitch1, yaw1) VALUES ('"
+				+ uuid
+				+ "', '"
+				+ username
+				+ "', '"
+				+ System.currentTimeMillis() / 1000
+				+ "', '"
+				+ -300
+				+ "', '"
+				+ sLocation.getWorld().getName()
+				+ "', '"
+				+ sLocation.getBlockX()
+				+ "', '"
+				+ sLocation.getBlockY()
+				+ "', '"
+				+ sLocation.getBlockZ()
+				+ "', '"
+				+ pLocation.getX()
+				+ "', '"
+				+ pLocation.getY()
+				+ "', '"
+				+ pLocation.getZ()
+				+ "', '"
+				+ pLocation.getPitch()
+				+ "', '"
+				+ pLocation.getYaw()
+				+ "') ON DUPLICATE KEY UPDATE "
+				+ "timeCreated = '"
+				+ System.currentTimeMillis() / 1000
+				+ "', cooldown = (cooldown + 30), w1 = '"
+				+ sLocation.getWorld().getName()
+				+ "', sx1 = '"
+				+ sLocation.getBlockX()
+				+ "', sy1 = '"
+				+ sLocation.getBlockY()
+				+ "', sz1 = '"
+				+ sLocation.getBlockZ()
+				+ "', x1 = '"
+				+ pLocation.getX()
+				+ "', y1 = '"
+				+ pLocation.getY()
+				+ "', z1 = '"
+				+ pLocation.getZ()
+				+ "', pitch1 = '"
+				+ pLocation.getPitch()
+				+ "', yaw1 = '"
+				+ pLocation.getYaw()
+				+ "'";
+		else
+			query = "INSERT INTO Slips (uuid, username, timeCreated, cooldown, w2, sx2, sy2, sz2, x2, y2, z2, pitch2, yaw2) VALUES ('"
+				+ uuid
+				+ "', '"
+				+ username
+				+ "', '"
+				+ System.currentTimeMillis() / 1000
+				+ "', '"
+				+ -300
+				+ "', '"
+				+ sLocation.getWorld().getName()
+				+ "', '"
+				+ sLocation.getBlockX()
+				+ "', '"
+				+ sLocation.getBlockY()
+				+ "', '"
+				+ sLocation.getBlockZ()
+				+ "', '"
+				+ pLocation.getX()
+				+ "', '"
+				+ pLocation.getY()
+				+ "', '"
+				+ pLocation.getZ()
+				+ "', '"
+				+ pLocation.getPitch()
+				+ "', '"
+				+ pLocation.getYaw()
+				+ "') ON DUPLICATE KEY UPDATE "
+				+ "timeCreated = '"
+				+ System.currentTimeMillis() / 1000
+				+ "', cooldown = (cooldown + 30), w2 = '"
+				+ sLocation.getWorld().getName()
+				+ "', sx2 = '"
+				+ sLocation.getBlockX()
+				+ "', sy2 = '"
+				+ sLocation.getBlockY()
+				+ "', sz2 = '"
+				+ sLocation.getBlockZ()
+				+ "', x2 = '"
+				+ pLocation.getX()
+				+ "', y2 = '"
+				+ pLocation.getY()
+				+ "', z2 = '"
+				+ pLocation.getZ()
+				+ "', pitch2 = '"
+				+ pLocation.getPitch()
+				+ "', yaw2 = '"
+				+ pLocation.getYaw()
+				+ "'";
+		try {
+			Statement stmt = conn.createStatement();
+			stmt.executeUpdate(query);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}	
+	 */
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args){
 		if(cmd.getName().equalsIgnoreCase("slipdisk")){
@@ -106,7 +273,7 @@ public class Slipdisk extends JavaPlugin implements Listener{
 		//(both signs and DB record)
 		event.setLine(1, trunc);
 		
-		Spinalpack.insertSlipNode(uuid, trunc, event.getBlock().getLocation(), player.getLocation(), slipno);
+		insertSlip(uuid, trunc, event.getBlock().getLocation(), player.getLocation(), slipno);
 		
 		player.sendMessage(Spinalpack.code(Co.GOLD) + "Created a new slip gate!");
 		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName() + " created a slip gate!");
