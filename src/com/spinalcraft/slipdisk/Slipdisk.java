@@ -47,7 +47,201 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Spinalpack.update(query);
 	}
 
-	private void insertSlip(String uuid, String username, Location sLocation,
+	public boolean onCommand(CommandSender sender, Command cmd, String label,
+			String[] args) {
+		if (cmd.getName().equalsIgnoreCase("slipdisk")) {
+			if (sender instanceof Player) {
+				Player player = (Player) sender;
+				player.sendMessage("");
+				player.sendMessage(Spinalpack.code(Co.GOLD)
+						+ "Slipdisk is a Spinalcraft-exclusive plugin that allows "
+						+ "you to create a two-way \"slip\" to teleport between spawn and your base!");
+				player.sendMessage("");
+				player.sendMessage(Spinalpack.code(Co.GOLD)
+						+ "Each player may have one slip at a time. "
+						+ "To create a slip, you need to place a sign at each endpoint. On each sign, simply type "
+						+ Spinalpack.code(Co.RED)
+						+ "#slip "
+						+ Spinalpack.code(Co.GOLD)
+						+ "in the top row, and it will automatically register it in your name. "
+						+ "Now you and others can use your slip to instantly teleport back and forth!");
+				player.sendMessage("");
+				return true;
+			}
+		}
+		if (cmd.getName().equalsIgnoreCase("deleteslip")) {
+			Player player = (Player) sender;
+			if (deleteSlip(player)) {
+				player.sendMessage(Spinalpack.code(Co.GOLD)
+						+ "Successfully deleted slip!");
+			} else {
+				player.sendMessage(Spinalpack.code(Co.RED)
+						+ "Unable to delete slip due to database error. (Let Parker know)");
+			}
+			return true;
+		}
+		return false;
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL)
+	public void onSignChange(SignChangeEvent event) {
+		int slipno;
+
+		if (!event.getPlayer().hasPermission("slipdisk.createslip")) {
+			event.getPlayer().sendMessage(
+					Spinalpack.code(Co.RED)
+							+ "You're not allowed to create slips!");
+			return;
+		}
+
+		if (!(event.getLine(0).equalsIgnoreCase("#slip") || event.getLine(1)
+				.equalsIgnoreCase("#slip")))
+			return;
+
+		Player player = event.getPlayer();
+
+		String uuid = player.getUniqueId().toString();
+		Slip slip = slipFromUuid(uuid);
+
+		if (slip == null) {
+			event.setCancelled(true);
+			return;
+		}
+		if (slip.sign[0] == null)
+			slipno = 1;
+		else if (slip.sign[1] == null)
+			slipno = 2;
+		else {
+			player.sendMessage(Spinalpack.code(Co.RED)
+					+ "Your slip already has two endpoints. Break one first!");
+			return;
+		}
+
+		event.setLine(0, Spinalpack.code(Co.DARKRED) + "Slip");
+
+		String trunc = truncatedName(player.getName());
+
+		event.setLine(1, trunc);
+
+		insertEndpoint(uuid, trunc, event.getBlock().getLocation(),
+				player.getLocation(), slipno);
+
+		player.sendMessage(Spinalpack.code(Co.GOLD)
+				+ "Created a new slip gate!");
+		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName()
+				+ " created a slip gate!");
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL)
+	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (!(event.getAction() == Action.RIGHT_CLICK_BLOCK))
+			return;
+
+		if (!(event.getClickedBlock().getState() instanceof Sign))
+			return;
+
+		if (!event.getPlayer().hasPermission("slipdisk.useslip")) {
+			event.getPlayer().sendMessage(
+					Spinalpack.code(Co.RED)
+							+ "You're not allowed to use slips!");
+			return;
+		}
+
+		Sign sign = (Sign) event.getClickedBlock().getState();
+		if (!slipSign(sign))
+			return;
+		Player player = event.getPlayer();
+
+		Slip slip = slipFromUsername(sign.getLine(1));
+		if (slip == null) {
+			player.sendMessage(Spinalpack.code(Co.RED)
+					+ "Critical database error!");
+			return;
+		}
+		if (slip.numEndpoints() == 0) {
+			player.sendMessage(Spinalpack.code(Co.RED)
+					+ "Error: Unable to find this endpoint in the database!");
+			return;
+		}
+
+		if (slip.numEndpoints() < 2) {
+			player.sendMessage(Spinalpack.code(Co.RED)
+					+ "Slip has no exit gate!");
+			return;
+		}
+
+		long timeElapsed = System.currentTimeMillis() / 1000 - slip.timeCreated;
+
+		if (timeElapsed < slip.cooldown
+				&& !player.hasPermission("slipdisk.nocooldown")) {
+			long timeRemaining = slip.cooldown - timeElapsed;
+			String timeString = "" + timeRemaining / 60 + ":"
+					+ (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60;
+			player.sendMessage(Spinalpack.code(Co.GOLD)
+					+ "Cooldown remaining: " + Spinalpack.code(Co.RED)
+					+ timeString);
+			return;
+		}
+
+		Location destination = nextSlip(slip, sign);
+		if(destination == null)
+			return;
+		
+		player.teleport(destination);
+	}
+	
+	private Location nextSlip(Slip slip, Sign sign){
+		for(int i = 0; i < Slip.MAX_SLIPS; i++)
+			if(slip.sign[i].equals(sign.getLocation())){
+				int j = i;
+				do{
+					j = (j + 1) % Slip.MAX_SLIPS;	
+				}
+				while(slip.sign[j] == null);
+				return slip.slip[j];
+			}
+		return null;
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL)
+	public void onBlockBreak(BlockBreakEvent event) {
+		if (event.getBlock().getType() == Material.SIGN_POST
+				|| event.getBlock().getType() == Material.WALL_SIGN) {
+			Sign sign = (Sign) event.getBlock().getState();
+			if (slipSign(sign)) {
+				if (unlinkSlipSign(sign))
+					event.getPlayer().sendMessage(
+							Spinalpack.code(Co.RED) + "Unlinked a slip gate!");
+				else {
+					event.getPlayer()
+							.sendMessage(
+									Spinalpack.code(Co.RED)
+											+ "Unable to unlink due to database error. Go find Parker and tell him "
+											+ "this shit isn't working!");
+					event.setCancelled(true);
+				}
+			}
+		}
+	}
+
+	@EventHandler(priority = EventPriority.NORMAL)
+	public void onBlockPhysics(BlockPhysicsEvent event) {
+		if (event.getBlock().getType() == Material.SIGN_POST
+				|| event.getBlock().getType() == Material.WALL_SIGN) {
+			Sign sign = (Sign) event.getBlock().getState();
+			Block attachedTo = event.getBlock().getRelative(
+					((org.bukkit.material.Sign) sign.getData())
+							.getAttachedFace());
+			if (attachedTo.getType() == Material.AIR) {
+				if (slipSign(sign)) {
+					if (!unlinkSlipSign(sign))
+						event.setCancelled(true);
+				}
+			}
+		}
+	}
+	
+	private void insertEndpoint(String uuid, String username, Location sLocation,
 			Location pLocation, int slipno) {
 		String query;
 		PreparedStatement stmt;
@@ -216,200 +410,6 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			}
 		}
 		return ret;
-	}
-
-	public boolean onCommand(CommandSender sender, Command cmd, String label,
-			String[] args) {
-		if (cmd.getName().equalsIgnoreCase("slipdisk")) {
-			if (sender instanceof Player) {
-				Player player = (Player) sender;
-				player.sendMessage("");
-				player.sendMessage(Spinalpack.code(Co.GOLD)
-						+ "Slipdisk is a Spinalcraft-exclusive plugin that allows "
-						+ "you to create a two-way \"slip\" to teleport between spawn and your base!");
-				player.sendMessage("");
-				player.sendMessage(Spinalpack.code(Co.GOLD)
-						+ "Each player may have one slip at a time. "
-						+ "To create a slip, you need to place a sign at each endpoint. On each sign, simply type "
-						+ Spinalpack.code(Co.RED)
-						+ "#slip "
-						+ Spinalpack.code(Co.GOLD)
-						+ "in the top row, and it will automatically register it in your name. "
-						+ "Now you and others can use your slip to instantly teleport back and forth!");
-				player.sendMessage("");
-				return true;
-			}
-		}
-		if (cmd.getName().equalsIgnoreCase("deleteslip")) {
-			Player player = (Player) sender;
-			if (deleteSlip(player)) {
-				player.sendMessage(Spinalpack.code(Co.GOLD)
-						+ "Successfully deleted slip!");
-			} else {
-				player.sendMessage(Spinalpack.code(Co.RED)
-						+ "Unable to delete slip due to database error. (Let Parker know)");
-			}
-			return true;
-		}
-		return false;
-	}
-
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onSignChange(SignChangeEvent event) {
-		int slipno;
-
-		if (!event.getPlayer().hasPermission("slipdisk.createslip")) {
-			event.getPlayer().sendMessage(
-					Spinalpack.code(Co.RED)
-							+ "You're not allowed to create slips!");
-			return;
-		}
-
-		if (!(event.getLine(0).equalsIgnoreCase("#slip") || event.getLine(1)
-				.equalsIgnoreCase("#slip")))
-			return;
-
-		Player player = event.getPlayer();
-
-		String uuid = player.getUniqueId().toString();
-		Slip slip = slipFromUuid(uuid);
-
-		if (slip == null) {
-			event.setCancelled(true);
-			return;
-		}
-		if (slip.sign[0] == null)
-			slipno = 1;
-		else if (slip.sign[1] == null)
-			slipno = 2;
-		else {
-			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Your slip already has two endpoints. Break one first!");
-			return;
-		}
-
-		event.setLine(0, Spinalpack.code(Co.DARKRED) + "Slip");
-
-		String trunc = truncatedName(player.getName());
-
-		event.setLine(1, trunc);
-
-		insertSlip(uuid, trunc, event.getBlock().getLocation(),
-				player.getLocation(), slipno);
-
-		player.sendMessage(Spinalpack.code(Co.GOLD)
-				+ "Created a new slip gate!");
-		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName()
-				+ " created a slip gate!");
-	}
-
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onPlayerInteract(PlayerInteractEvent event) {
-		if (!(event.getAction() == Action.RIGHT_CLICK_BLOCK))
-			return;
-
-		if (!(event.getClickedBlock().getState() instanceof Sign))
-			return;
-
-		if (!event.getPlayer().hasPermission("slipdisk.useslip")) {
-			event.getPlayer().sendMessage(
-					Spinalpack.code(Co.RED)
-							+ "You're not allowed to use slips!");
-			return;
-		}
-
-		Sign sign = (Sign) event.getClickedBlock().getState();
-		if (!slipSign(sign))
-			return;
-		Player player = event.getPlayer();
-
-		Slip slip = slipFromUsername(sign.getLine(1));
-		if (slip == null) {
-			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Critical database error!");
-			return;
-		}
-		if (slip.numEndpoints() == 0) {
-			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Error: Unable to find this endpoint in the database!");
-			return;
-		}
-
-		if (slip.numEndpoints() < 2) {
-			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Slip has no exit gate!");
-			return;
-		}
-
-		long timeElapsed = System.currentTimeMillis() / 1000 - slip.timeCreated;
-
-		if (timeElapsed < slip.cooldown
-				&& !player.hasPermission("slipdisk.nocooldown")) {
-			long timeRemaining = slip.cooldown - timeElapsed;
-			String timeString = "" + timeRemaining / 60 + ":"
-					+ (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60;
-			player.sendMessage(Spinalpack.code(Co.GOLD)
-					+ "Cooldown remaining: " + Spinalpack.code(Co.RED)
-					+ timeString);
-			return;
-		}
-
-		Location destination = nextSlip(slip, sign);
-		if(destination == null)
-			return;
-		
-		player.teleport(destination);
-	}
-	
-	private Location nextSlip(Slip slip, Sign sign){
-		for(int i = 0; i < Slip.MAX_SLIPS; i++)
-			if(slip.sign[i].equals(sign.getLocation())){
-				int j = i;
-				do{
-					j = (j + 1) % Slip.MAX_SLIPS;	
-				}
-				while(slip.sign[j] == null);
-				return slip.slip[j];
-			}
-		return null;
-	}
-
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onBlockBreak(BlockBreakEvent event) {
-		if (event.getBlock().getType() == Material.SIGN_POST
-				|| event.getBlock().getType() == Material.WALL_SIGN) {
-			Sign sign = (Sign) event.getBlock().getState();
-			if (slipSign(sign)) {
-				if (unlinkSlipSign(sign))
-					event.getPlayer().sendMessage(
-							Spinalpack.code(Co.RED) + "Unlinked a slip gate!");
-				else {
-					event.getPlayer()
-							.sendMessage(
-									Spinalpack.code(Co.RED)
-											+ "Unable to unlink due to database error. Go find Parker and tell him "
-											+ "this shit isn't working!");
-					event.setCancelled(true);
-				}
-			}
-		}
-	}
-
-	@EventHandler(priority = EventPriority.NORMAL)
-	public void onBlockPhysics(BlockPhysicsEvent event) {
-		if (event.getBlock().getType() == Material.SIGN_POST
-				|| event.getBlock().getType() == Material.WALL_SIGN) {
-			Sign sign = (Sign) event.getBlock().getState();
-			Block attachedTo = event.getBlock().getRelative(
-					((org.bukkit.material.Sign) sign.getData())
-							.getAttachedFace());
-			if (attachedTo.getType() == Material.AIR) {
-				if (slipSign(sign)) {
-					if (!unlinkSlipSign(sign))
-						event.setCancelled(true);
-				}
-			}
-		}
 	}
 
 	private String truncatedName(String name) {
