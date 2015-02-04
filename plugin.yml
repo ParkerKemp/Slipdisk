@@ -14,3 +14,8 @@ commands:
     description: Delete your slip entirely (useful in case it's broken because of Parker's incompetence)
     usage: Usage - /deleteslip
     
+  debug:
+    description: Display exceptions
+    usage: Usage - /debug [on | off]
+    permission: slipdisk.debug
+    permission-message: No!
