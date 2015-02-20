@@ -122,6 +122,21 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		String trunc = truncatedName(player.getName());
 
 		event.setLine(1, trunc);
+		
+		Block block;
+		Sign tempSign;
+		for(int i = 0; i < Slip.MAX_SLIPS; i++){
+			if(slip.sign[i] != null){
+				block = slip.sign[i].getBlock();
+				if (block.getState() instanceof Sign) {
+					tempSign = (Sign)block.getState();
+					if(slipSign(tempSign)){
+						tempSign.setLine(1, trunc);
+						tempSign.update();
+					}
+				}
+			}
+		}
 
 		insertEndpoint(uuid, trunc, event.getBlock().getLocation(),
 				player.getLocation(), slipno);
@@ -249,7 +264,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				.format("INSERT INTO Slips (uuid, username, timeCreated, cooldown, w%d, sx%d, "
 						+ "sy%d, sz%d, x%d, y%d, z%d, pitch%d, yaw%d) "
 						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-						+ "ON DUPLICATE KEY UPDATE timeCreated = ?, cooldown = cooldown + 30, w%d = ?, sx%d = ?, "
+						+ "ON DUPLICATE KEY UPDATE username = ?, timeCreated = ?, cooldown = cooldown + 30, w%d = ?, sx%d = ?, "
 						+ "sy%d = ?, sz%d = ?, x%d = ?, y%d = ?, z%d = ?, pitch%d = ?, yaw%d = ?",
 						slipno, slipno, slipno, slipno, slipno, slipno, slipno,
 						slipno, slipno, slipno, slipno, slipno, slipno, slipno,
@@ -271,16 +286,17 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			stmt.setDouble(11, pLocation.getZ());
 			stmt.setDouble(12, pLocation.getPitch());
 			stmt.setDouble(13, pLocation.getYaw());
-			stmt.setLong(14, System.currentTimeMillis() / 1000);
-			stmt.setString(15, sLocation.getWorld().getName());
-			stmt.setFloat(16, sLocation.getBlockX());
-			stmt.setFloat(17, sLocation.getBlockY());
-			stmt.setFloat(18, sLocation.getBlockZ());
-			stmt.setDouble(19, pLocation.getX());
-			stmt.setDouble(20, pLocation.getY());
-			stmt.setDouble(21, pLocation.getZ());
-			stmt.setDouble(22, pLocation.getPitch());
-			stmt.setDouble(23, pLocation.getYaw());
+			stmt.setString(14, username);
+			stmt.setLong(15, System.currentTimeMillis() / 1000);
+			stmt.setString(16, sLocation.getWorld().getName());
+			stmt.setFloat(17, sLocation.getBlockX());
+			stmt.setFloat(18, sLocation.getBlockY());
+			stmt.setFloat(19, sLocation.getBlockZ());
+			stmt.setDouble(20, pLocation.getX());
+			stmt.setDouble(21, pLocation.getY());
+			stmt.setDouble(22, pLocation.getZ());
+			stmt.setDouble(23, pLocation.getPitch());
+			stmt.setDouble(24, pLocation.getYaw());
 
 			stmt.executeUpdate();
 		} catch (SQLException e1) {
@@ -347,7 +363,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		for(int i = 0; i < Slip.MAX_SLIPS; i++){
 			if(slip.sign[i] != null){
 				if(slip.sign[i].equals(sign.getLocation()))
-					return unlinkSignWithUsername(sign.getLine(i + 1), i + 1);
+					return unlinkSignWithUsername(sign.getLine(1), i + 1);
 			}
 		}
 		return true;
