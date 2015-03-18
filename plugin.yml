@@ -11,9 +11,17 @@ commands:
     aliases: slip
     
   deleteslip:
-    description: Delete your slip entirely (useful in case it's broken because of Parker's incompetence)
-    usage: Usage - /deleteslip
-    
+    description: Delete a user's slip entirely
+    usage: Usage - /deleteslip <username>
+    permission: slipdisk.deleteslip
+    permission-message: No!
+  
+  elevate:
+    description: Elevate a user's privileges in Slipdisk
+    usage: Usage - /elevate <username> <level>
+    permission: slipdisk.elevate
+    permission-message: No!
+  
   debug:
     description: Display exceptions
     usage: Usage - /debug [on | off]

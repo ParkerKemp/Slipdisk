@@ -4,6 +4,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import net.md_5.bungee.api.ChatColor;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -36,14 +38,19 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		console.sendMessage(Spinalpack.code(Co.BLUE) + "Slipdisk online!");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 
-		createSlipTable();
+		createTables();
 	}
-
-	private void createSlipTable() {
-		String query = "CREATE TABLE IF NOT EXISTS Slips (uuid VARCHAR(36) PRIMARY KEY, username VARCHAR(31), "
-				+ "timeCreated INT, cooldown INT, w1 VARCHAR(31), sx1 FLOAT, sy1 FLOAT, sz1 FLOAT, x1 FLOAT, "
-				+ "y1 FLOAT, z1 FLOAT, pitch1 FLOAT, yaw1 FLOAT, w2 VARCHAR(31), sx2 FLOAT, sy2 FLOAT, sz2 FLOAT, "
-				+ "x2 FLOAT, y2 FLOAT, z2 FLOAT, pitch2 FLOAT, yaw2 FLOAT)";
+	
+	private static void createTables(){
+		String query;
+		query = "CREATE TABLE IF NOT EXISTS slip_users (uid INT NOT NULL AUTO_INCREMENT PRIMARY KEY, uuid VARCHAR(36) UNIQUE, username VARCHAR(32))";
+		Spinalpack.update(query);
+		query = "CREATE TABLE IF NOT EXISTS slip_roles (role VARCHAR(16) PRIMARY KEY, max INT, cdimmune BIT(1))";
+		Spinalpack.update(query);
+		query = "CREATE TABLE IF NOT EXISTS slip_slips (sid INT NOT NULL AUTO_INCREMENT PRIMARY KEY, uid INT, date INT, w VARCHAR(32), "
+				+ "sx FLOAT, sy FLOAT, sz FLOAT, x FLOAT, y FLOAT, z FLOAT, pitch FLOAT, yaw FLOAT, FOREIGN KEY (uid) REFERENCES slip_users(uid))";
+		Spinalpack.update(query);
+		query = "CREATE TABLE IF NOT EXISTS slip_info (uid INT PRIMARY KEY, cd INT, role VARCHAR(16), FOREIGN KEY (uid) REFERENCES slip_users(uid), FOREIGN KEY (role) REFERENCES slip_roles(role))";
 		Spinalpack.update(query);
 	}
 
@@ -70,14 +77,28 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			}
 		}
 		if (cmd.getName().equalsIgnoreCase("deleteslip")) {
-			Player player = (Player) sender;
+			if(args.length == 0)
+				return false;
+			
+			Player player = Bukkit.getPlayer(args[0]);
+			if(player == null){
+				sender.sendMessage("Player couldn't be found!");
+				return true;
+			}
 			if (deleteSlip(player)) {
-				player.sendMessage(Spinalpack.code(Co.GOLD)
+				player.sendMessage(Spinalpack.code(Co.GOLD) + "Your slip was deleted by a moderator!");
+				sender.sendMessage(Spinalpack.code(Co.GOLD)
 						+ "Successfully deleted slip!");
 			} else {
-				player.sendMessage(Spinalpack.code(Co.RED)
+				sender.sendMessage(Spinalpack.code(Co.RED)
 						+ "Unable to delete slip due to database error. (Let Parker know)");
 			}
+			return true;
+		}
+		if(cmd.getName().equalsIgnoreCase("elevate")){
+			if(args.length < 2)
+				return false;
+			elevateUser(sender, args[0], args[1]);
 			return true;
 		}
 		return false;
@@ -85,8 +106,6 @@ public class Slipdisk extends JavaPlugin implements Listener {
 
 	@EventHandler(priority = EventPriority.NORMAL)
 	public void onSignChange(SignChangeEvent event) {
-		int slipno;
-
 		if (!event.getPlayer().hasPermission("slipdisk.createslip")) {
 			event.getPlayer().sendMessage(
 					Spinalpack.code(Co.RED)
@@ -101,19 +120,21 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Player player = event.getPlayer();
 
 		String uuid = player.getUniqueId().toString();
+		
+		Profile profile = getProfile(player);
+		if(profile == null){
+			player.sendMessage(ChatColor.RED + "Database error!");
+			return;
+		}
 		Slip slip = slipFromUuid(uuid);
 
 		if (slip == null) {
 			event.setCancelled(true);
 			return;
 		}
-		if (slip.sign[0] == null)
-			slipno = 1;
-		else if (slip.sign[1] == null)
-			slipno = 2;
-		else {
-			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Your slip already has two endpoints. Break one first!");
+		
+		if(slip.numEndpoints() >= profile.max){
+			player.sendMessage(Spinalpack.code(Co.RED) + "Your slip already has " + profile.max + " endpoints. Break one first!");
 			return;
 		}
 
@@ -126,8 +147,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Block block;
 		Sign tempSign;
 		for(int i = 0; i < Slip.MAX_SLIPS; i++){
-			if(slip.sign[i] != null){
-				block = slip.sign[i].getBlock();
+			if(slip.signs[i] != null){
+				block = slip.signs[i].sign.getBlock();
 				if (block.getState() instanceof Sign) {
 					tempSign = (Sign)block.getState();
 					if(slipSign(tempSign)){
@@ -138,8 +159,11 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			}
 		}
 
-		insertEndpoint(uuid, trunc, event.getBlock().getLocation(),
-				player.getLocation(), slipno);
+		try {
+			insertEndpoint(uuid, trunc, event.getBlock().getLocation(), player.getLocation());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 
 		player.sendMessage(Spinalpack.code(Co.GOLD)
 				+ "Created a new slip gate!");
@@ -167,6 +191,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			return;
 		Player player = event.getPlayer();
 
+		Profile profile = getProfile(player);
+		
 		Slip slip = slipFromUsername(sign.getLine(1));
 		if (slip == null) {
 			player.sendMessage(Spinalpack.code(Co.RED)
@@ -178,18 +204,16 @@ public class Slipdisk extends JavaPlugin implements Listener {
 					+ "Error: Unable to find this endpoint in the database!");
 			return;
 		}
-
 		if (slip.numEndpoints() < 2) {
 			player.sendMessage(Spinalpack.code(Co.RED)
 					+ "Slip has no exit gate!");
 			return;
 		}
 
-		long timeElapsed = System.currentTimeMillis() / 1000 - slip.timeCreated;
+		long timeElapsed = System.currentTimeMillis() / 1000 - slip.getMostRecentDate();
 
-		if (timeElapsed < slip.cooldown
-				&& !player.hasPermission("slipdisk.nocooldown")) {
-			long timeRemaining = slip.cooldown - timeElapsed;
+		if (timeElapsed < profile.cd && !profile.cdImmune) {
+			long timeRemaining = profile.cd - timeElapsed;
 			String timeString = "" + timeRemaining / 60 + ":"
 					+ (timeRemaining % 60 < 10 ? "0" : "") + timeRemaining % 60;
 			player.sendMessage(Spinalpack.code(Co.GOLD)
@@ -205,15 +229,35 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		player.teleport(destination);
 	}
 	
+	private void elevateUser(CommandSender sender, String username, String level){
+		Player player = Bukkit.getPlayer(username);
+		if(player == null){
+			sender.sendMessage(ChatColor.RED + "Player couldn't be found!");
+			return;
+		}
+		String query = "UPDATE slip_info i JOIN slip_users u ON i.uid = u.uid AND u.uuid = ? SET i.role = ?";
+		try {
+			PreparedStatement stmt = Spinalpack.prepareStatement(query);
+			stmt.setString(1, player.getUniqueId().toString());
+			stmt.setString(2, level);
+			stmt.executeUpdate();
+		} catch (SQLException e) {
+			sender.sendMessage(ChatColor.RED + "Couldn't find that privilege level in the database!");
+			e.printStackTrace();
+			return;
+		}
+		sender.sendMessage(ChatColor.BLUE + username + ChatColor.GOLD + " was changed to " + ChatColor.GREEN + level + ChatColor.GOLD + "!");
+	}
+	
 	private Location nextSlip(Slip slip, Sign sign){
 		for(int i = 0; i < Slip.MAX_SLIPS; i++)
-			if(slip.sign[i].equals(sign.getLocation())){
+			if(slip.signs[i].sign.equals(sign.getLocation())){
 				int j = i;
 				do{
 					j = (j + 1) % Slip.MAX_SLIPS;	
 				}
-				while(slip.sign[j] == null);
-				return slip.slip[j];
+				while(slip.signs[j] == null);
+				return slip.signs[j].slip;
 			}
 		return null;
 	}
@@ -256,52 +300,41 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		}
 	}
 	
-	private void insertEndpoint(String uuid, String username, Location sLocation,
-			Location pLocation, int slipno) {
-		String query;
-		PreparedStatement stmt;
-		query = String
-				.format("INSERT INTO Slips (uuid, username, timeCreated, cooldown, w%d, sx%d, "
-						+ "sy%d, sz%d, x%d, y%d, z%d, pitch%d, yaw%d) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
-						+ "ON DUPLICATE KEY UPDATE username = ?, timeCreated = ?, cooldown = cooldown + 30, w%d = ?, sx%d = ?, "
-						+ "sy%d = ?, sz%d = ?, x%d = ?, y%d = ?, z%d = ?, pitch%d = ?, yaw%d = ?",
-						slipno, slipno, slipno, slipno, slipno, slipno, slipno,
-						slipno, slipno, slipno, slipno, slipno, slipno, slipno,
-						slipno, slipno, slipno, slipno, slipno, slipno, slipno,
-						slipno);
-		try {
-			stmt = Spinalpack.prepareStatement(query);
-
-			stmt.setString(1, uuid);
-			stmt.setString(2, username);
-			stmt.setLong(3, System.currentTimeMillis() / 1000);
-			stmt.setInt(4, -300);
-			stmt.setString(5, sLocation.getWorld().getName());
-			stmt.setFloat(6, sLocation.getBlockX());
-			stmt.setFloat(7, sLocation.getBlockY());
-			stmt.setFloat(8, sLocation.getBlockZ());
-			stmt.setDouble(9, pLocation.getX());
-			stmt.setDouble(10, pLocation.getY());
-			stmt.setDouble(11, pLocation.getZ());
-			stmt.setDouble(12, pLocation.getPitch());
-			stmt.setDouble(13, pLocation.getYaw());
-			stmt.setString(14, username);
-			stmt.setLong(15, System.currentTimeMillis() / 1000);
-			stmt.setString(16, sLocation.getWorld().getName());
-			stmt.setFloat(17, sLocation.getBlockX());
-			stmt.setFloat(18, sLocation.getBlockY());
-			stmt.setFloat(19, sLocation.getBlockZ());
-			stmt.setDouble(20, pLocation.getX());
-			stmt.setDouble(21, pLocation.getY());
-			stmt.setDouble(22, pLocation.getZ());
-			stmt.setDouble(23, pLocation.getPitch());
-			stmt.setDouble(24, pLocation.getYaw());
-
-			stmt.executeUpdate();
-		} catch (SQLException e1) {
-			e1.printStackTrace();
-		}
+	private void createUser(String uuid, String username) throws SQLException{
+		String query = "INSERT INTO slip_users (uuid, username) VALUES (?, ?)";
+		PreparedStatement stmt = Spinalpack.prepareStatement(query);
+		stmt.setString(1, uuid);
+		stmt.setString(2, username);
+		stmt.executeUpdate();
+		
+		query = "INSERT INTO slip_info (uid, cd, role) SELECT uid, -300, 'user' FROM slip_users WHERE uuid = ?";
+		stmt = Spinalpack.prepareStatement(query);
+		stmt.setString(1, uuid);
+		stmt.executeUpdate();
+	}
+	
+	private void insertEndpoint(String uuid, String username, Location sLocation, Location pLocation) throws SQLException {
+		String query = "INSERT INTO slip_slips (uid, date, w, sx, sy, sz, x, y, z, pitch, yaw) SELECT uid, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM slip_users WHERE uuid = ?";
+		PreparedStatement stmt = Spinalpack.prepareStatement(query);
+		stmt.setLong(1, System.currentTimeMillis() / 1000);
+		stmt.setString(2, sLocation.getWorld().getName());
+		stmt.setFloat(3, sLocation.getBlockX());
+		stmt.setFloat(4, sLocation.getBlockY());
+		stmt.setFloat(5, sLocation.getBlockZ());
+		stmt.setDouble(6, pLocation.getX());
+		stmt.setDouble(7, pLocation.getY());
+		stmt.setDouble(8, pLocation.getZ());
+		stmt.setDouble(9, pLocation.getPitch());
+		stmt.setDouble(10, pLocation.getYaw());
+		stmt.setString(11, uuid);
+		
+		stmt.executeUpdate();
+		
+		query = "UPDATE slip_info i JOIN slip_users u ON i.uid = u.uid AND u.uuid = ? SET cd = cd + 30";
+		
+		stmt = Spinalpack.prepareStatement(query);
+		stmt.setString(1, uuid);
+		stmt.executeUpdate();
 	}
 
 	private boolean deleteSlip(Player player) {
@@ -311,8 +344,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			return false;
 		
 		for(int i = 0; i < Slip.MAX_SLIPS; i++){
-			if(slip.sign[i] != null){
-				block = slip.sign[i].getBlock();
+			if(slip.signs[i] != null){
+				block = slip.signs[i].sign.getBlock();
 				if (block.getState() instanceof Sign) {
 					if (slipSign((Sign) block.getState())) {
 						block.breakNaturally();
@@ -324,10 +357,20 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	}
 
 	private boolean deleteSlipRecord(String uuid) {
-		return unlinkSignWithUuid(uuid, 1) && unlinkSignWithUuid(uuid, 2);
+		String query = "DELETE s.* FROM slip_slips AS s JOIN slip_users AS u ON s.uid = u.uid AND u.uuid = ?";
+		try {
+			PreparedStatement stmt = Spinalpack.prepareStatement(query);
+			stmt.setString(1, uuid);
+			stmt.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+		//return unlinkSignWithUuid(uuid, 1) && unlinkSignWithUuid(uuid, 2);
 	}
 
-	private boolean unlinkSignWithUuid(String uuid, int slipno) {
+	/*private boolean unlinkSignWithUuid(String uuid, int slipno) {
 		String query;
 		PreparedStatement stmt;
 		query = "UPDATE Slips SET w" + slipno + " = NULL WHERE uuid = ?";
@@ -355,22 +398,61 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			e.printStackTrace();
 		}
 		return false;
+	}*/
+	
+	private boolean unlinkSignWithSid(int sid){
+		String query = "DELETE FROM slip_slips WHERE sid = ?";
+		try {
+			PreparedStatement stmt = Spinalpack.prepareStatement(query);
+			stmt.setInt(1, sid);
+			stmt.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
 	}
 
 	private boolean unlinkSlipSign(Sign sign) {
 		Slip slip = slipFromUsername(sign.getLine(1));
 		
 		for(int i = 0; i < Slip.MAX_SLIPS; i++){
-			if(slip.sign[i] != null){
-				if(slip.sign[i].equals(sign.getLocation()))
-					return unlinkSignWithUsername(sign.getLine(1), i + 1);
+			if(slip.signs[i] != null){
+				if(slip.signs[i].sign.equals(sign.getLocation()))
+					return unlinkSignWithSid(slip.signs[i].sid);
 			}
 		}
 		return true;
 	}
+	
+	private Profile getProfile(Player player){
+		String uuid = player.getUniqueId().toString();
+		String query = "SELECT u.uid, uuid, username, r.role, max, cd, cdimmune FROM slip_users u, slip_info i, slip_roles r WHERE u.uid = i.uid AND i.role = r.role AND u.uuid = ?";
+		try {
+			PreparedStatement stmt = Spinalpack.prepareStatement(query);
+			stmt.setString(1, uuid);
+			ResultSet rs = stmt.executeQuery();
+			if(!rs.first()){
+				createUser(uuid, truncatedName(player.getName()));
+				return getProfile(player);
+			}
+			Profile profile = new Profile();
+			profile.uid = rs.getInt("u.uid");
+			profile.uuid = rs.getString("uuid");
+			profile.role = rs.getString("r.role");
+			profile.username = rs.getString("username");
+			profile.max = rs.getInt("max");
+			profile.cd = rs.getInt("cd");
+			profile.cdImmune = rs.getInt("cdimmune") == 1;
+			return profile;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
 
 	private Slip slipFromUsername(String username) {
-		String query = "SELECT * FROM Slips WHERE username = ?";
+		String query = "SELECT sid, date, w, sx, sy, sz, x, y, z, pitch, yaw FROM slip_slips s JOIN slip_users u ON s.uid = u.uid AND u.username = ?";
 		PreparedStatement stmt;
 		try {
 			stmt = Spinalpack.prepareStatement(query);
@@ -383,7 +465,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	}
 	
 	private Slip slipFromUuid(String uuid) {
-		String query = "SELECT * FROM Slips WHERE uuid = ?";
+		String query = "SELECT sid, date, w, sx, sy, sz, x, y, z, pitch, yaw FROM slip_slips s JOIN slip_users u ON s.uid = u.uid AND u.uuid = ?";
 		PreparedStatement stmt;
 		try {
 			stmt = Spinalpack.prepareStatement(query);
@@ -399,30 +481,29 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Slip ret = new Slip();
 		float x, y, z, pitch, yaw;
 		String world;
-		
+
 		ResultSet res = stmt.executeQuery();
 
-		if (!res.first())
-			return ret;
-
-		ret.timeCreated = res.getInt("timeCreated");
-		ret.cooldown = res.getInt("cooldown");
-		
-		for(int i = 0; i < Slip.MAX_SLIPS; i++){
-			world = res.getString("w" + (i + 1));
+		int i = 0;
+		while (res.next()) {
+			world = res.getString("w");
 			if (world != null) {
-				x = res.getFloat("sx" + (i + 1));
-				y = res.getFloat("sy" + (i + 1));
-				z = res.getFloat("sz" + (i + 1));
-				ret.sign[i] = new Location(Bukkit.getWorld(world), x, y, z);
+				x = res.getFloat("sx");
+				y = res.getFloat("sy");
+				z = res.getFloat("sz");
+				ret.signs[i] = new SlipSign();
+				ret.signs[i].sign = new Location(Bukkit.getWorld(world), x, y, z);
 
-				x = res.getFloat("x" + (i + 1));
-				y = res.getFloat("y" + (i + 1));
-				z = res.getFloat("z" + (i + 1));
-				pitch = res.getFloat("pitch" + (i + 1));
-				yaw = res.getFloat("yaw" + (i + 1));
-				ret.slip[i] = new Location(Bukkit.getWorld(world), x, y, z, yaw,
-						pitch);
+				x = res.getFloat("x");
+				y = res.getFloat("y");
+				z = res.getFloat("z");
+				pitch = res.getFloat("pitch");
+				yaw = res.getFloat("yaw");
+				ret.signs[i].slip = new Location(Bukkit.getWorld(world), x, y, z, yaw, pitch);
+				
+				ret.signs[i].date = res.getInt("date");
+				ret.signs[i].sid = res.getInt("sid");
+				i++;
 			}
 		}
 		return ret;

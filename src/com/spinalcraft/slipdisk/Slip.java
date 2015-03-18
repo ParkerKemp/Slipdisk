@@ -2,25 +2,35 @@ package com.spinalcraft.slipdisk;
 
 import org.bukkit.Location;
 
+class SlipSign{
+	public Location sign, slip;
+	public int date, sid;
+}
+
 public class Slip {
-	public static final int MAX_SLIPS = 2;
-	public Location sign[], slip[];
-	public int timeCreated, cooldown;
+	public static final int MAX_SLIPS = 5;
+	public SlipSign signs[];
 	
 	public Slip(){
-		sign = new Location[MAX_SLIPS];
-		slip = new Location[MAX_SLIPS];
+		signs = new SlipSign[MAX_SLIPS];
 		for(int i = 0; i < MAX_SLIPS; i++){
-			sign[i] = null;
-			slip[i] = null;
+			signs[i] = null;
 		}
 	}
 	
 	public int numEndpoints(){
 		int count = 0;
 		for(int i = 0; i < MAX_SLIPS; i++)
-			if(sign[i] != null)
+			if(signs[i] != null)
 				count++;
 		return count;
+	}
+	
+	public int getMostRecentDate(){
+		int max = 0;
+		for(int i = 0; i < MAX_SLIPS; i++)
+			if(signs[i] != null)
+				max = Math.max(max, signs[i].date);
+		return max;
 	}
 }

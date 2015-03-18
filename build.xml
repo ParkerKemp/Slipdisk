@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="build" name="Build Jar for Slipdisk">
+    <target name="build">
+        <mkdir dir="bin"/>
+        <javac includeantruntime="false" destdir="bin">
+			<src path="src"/>
+			<src path="../Spinalpack/src"/>
+			<classpath id="classpath">
+				<pathelement path="${classpath}" />
+				<fileset dir="lib"/>
+				<fileset dir="../Spinalpack/lib"/>
+			</classpath>
+		</javac>
+    </target>
+	<target name="jar">
+        <jar destfile="Slipdisk.jar" filesetmanifest="mergewithoutmain">
+            <fileset dir="bin"/>
+			<fileset file="plugin.yml"/>
+        </jar>
+    </target>
+	<target name="clean">
+	<delete dir="bin"/>
+	</target>
+</project>
