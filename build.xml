@@ -16,6 +16,7 @@
         <jar destfile="Slipdisk.jar" filesetmanifest="mergewithoutmain">
             <fileset dir="bin"/>
 			<fileset file="plugin.yml"/>
+			<zipfileset excludes="META-INF/*.SF" src="lib/joda-time-2.7.jar"/>
         </jar>
     </target>
 	<target name="clean">
