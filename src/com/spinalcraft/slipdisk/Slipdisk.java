@@ -3,10 +3,11 @@ package com.spinalcraft.slipdisk;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.UUID;
 
+import main.java.com.spinalcraft.spinalpack.Co;
+import main.java.com.spinalcraft.spinalpack.Spinalpack;
 import net.md_5.bungee.api.ChatColor;
 
 import org.bukkit.Bukkit;
@@ -30,9 +31,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-
-import com.spinalcraft.spinalpack.Co;
-import com.spinalcraft.spinalpack.Spinalpack;
 
 public class Slipdisk extends JavaPlugin implements Listener {
 	ConsoleCommandSender console;
