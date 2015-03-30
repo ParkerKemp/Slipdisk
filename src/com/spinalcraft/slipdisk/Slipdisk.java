@@ -414,6 +414,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	}
 	
 	private Profile getProfile(String username){
+		//Used for an existing slip sign
+		
 		String query = "SELECT uuid FROM slip_users WHERE username = ?";
 		PreparedStatement stmt;
 		try {
@@ -432,12 +434,21 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		//Should be used when creating slip signs. Creates new profile if none exists
 		
 		String query = "SELECT * FROM slip_users WHERE uuid = ?";
+		String truncName = truncatedName(player.getName());
+		String uuidString = player.getUniqueId().toString();
 		try {
 			PreparedStatement stmt = Spinalpack.prepareStatement(query);
-			stmt.setString(1, player.getUniqueId().toString());
+			stmt.setString(1, uuidString);
 			ResultSet rs = stmt.executeQuery();
 			if(!rs.first())
-				createUser(player.getUniqueId().toString(), truncatedName(player.getName()));
+				createUser(uuidString, truncName);
+			else if(rs.getString("username") != truncName){
+				query = "UPDATE slip_users SET username = ? WHERE uuid = ?";
+				stmt = Spinalpack.prepareStatement(query);
+				stmt.setString(1, truncName);
+				stmt.setString(2, uuidString);
+				stmt.executeUpdate();
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -445,7 +456,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	}
 	
 	private Profile getProfile(UUID uuid){
-		//Assumes profile exists (when using an existing slip sign)
+		//Assumes profile exists
 		
 		String query = "SELECT u.uid, uuid, username, r.role, max, cddayzero, cdimmune FROM slip_users u, slip_info i, slip_roles r WHERE u.uid = i.uid AND i.role = r.role AND u.uuid = ?";
 		try {
