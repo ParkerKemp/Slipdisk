@@ -13,8 +13,12 @@
 	<url>http://github.com/ParkerKemp/Slipdisk</url>
 	<repositories>
 		<repository>
-            <id>spigot-repo</id>
-            <url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+			<id>spigot-repo</id>
+			<url>https://hub.spigotmc.org/nexus/content/groups/public/</url>
+		</repository>
+		<repository>
+			<id>mvnresository</id>
+			<url>http://mvnrepository.com</url>
 		</repository>
 	</repositories>
 	<dependencies>
@@ -25,10 +29,20 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.spigotmc</groupId>
+			<artifactId>spigot-api</artifactId>
+			<version>1.8-R0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>com.spinalcraft</groupId>
 			<artifactId>Spinalpack</artifactId>
 			<version>1.0</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>joda-time</groupId>
+			<artifactId>joda-time</artifactId>
+			<version>2.7</version>
 		</dependency>
 	</dependencies>
 	<build>
