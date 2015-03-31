@@ -22,6 +22,12 @@ commands:
     permission: slipdisk.elevate
     permission-message: No!
   
+  aprilfools:
+    description: Enable chaos
+    usage: Usage - /aprilfools <on | off>
+    permission: slipdisk.aprilfools
+    permission-message: No!
+  	
   debug:
     description: Display exceptions
     usage: Usage - /debug [on | off]

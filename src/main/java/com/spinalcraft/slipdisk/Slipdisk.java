@@ -18,6 +18,7 @@ import org.bukkit.block.Sign;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -34,14 +35,18 @@ import org.joda.time.Days;
 
 public class Slipdisk extends JavaPlugin implements Listener {
 	ConsoleCommandSender console;
-
+	private boolean aprilFools;
+	
 	@Override
 	public void onEnable() {
 		console = Bukkit.getConsoleSender();
 		console.sendMessage(Spinalpack.code(Co.BLUE) + "Slipdisk online!");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
-
+		
 		createTables();
+		getDataFolder().mkdirs();
+		saveDefaultConfig();
+		loadConfig();
 	}
 	
 	private static void createTables(){
@@ -57,6 +62,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Spinalpack.update(query);
 	}
 
+	@SuppressWarnings("deprecation")
 	public boolean onCommand(CommandSender sender, Command cmd, String label,
 			String[] args) {
 		if (cmd.getName().equalsIgnoreCase("slipdisk")) {
@@ -103,6 +109,23 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				return false;
 			elevateUser(sender, args[0], args[1]);
 			return true;
+		}
+		if(cmd.getName().equalsIgnoreCase("aprilfools")){
+			if(args.length < 1)
+				return false;
+			if(args[0].equalsIgnoreCase("on")){
+				aprilFools = true;
+				sender.sendMessage(ChatColor.GOLD + "April Fools enabled!");
+				writeConfig();
+				return true;
+			}else if(args[0].equalsIgnoreCase("off")){
+				aprilFools = false;
+				sender.sendMessage(ChatColor.GOLD + "April Fools disabled!");
+				writeConfig();
+				return true;
+			}else
+				return false;
+			
 		}
 		return false;
 	}
@@ -217,14 +240,52 @@ public class Slipdisk extends JavaPlugin implements Listener {
 					+ timeString);
 			return;
 		}
-
-		Location destination = nextSlip(profile.slip, sign);
+		Location destination;
+		if(!aprilFools)
+			destination = nextSlip(profile.slip, sign);
+		else
+			destination = aprilFools();
 		if(destination == null)
 			return;
 		
 		player.teleport(destination);
 	}
 	
+	Location aprilFools(){
+		String query = "SELECT count(*) AS c FROM slip_slips";
+		try {
+			PreparedStatement stmt = Spinalpack.prepareStatement(query);
+			ResultSet rs = stmt.executeQuery();
+			rs.first();
+			int num = rs.getInt("c");
+			int get = (int) (Math.random() * num);
+			
+			query = "SELECT sid FROM slip_slips";
+			stmt = Spinalpack.prepareStatement(query);
+			rs = stmt.executeQuery();
+			for(int i = 0; i < get; i++)
+				rs.next();
+			
+			int sid = rs.getInt("sid");
+			query = "SELECT * FROM slip_slips WHERE sid = ?";
+			stmt = Spinalpack.prepareStatement(query);
+			stmt.setInt(1, sid);
+			rs = stmt.executeQuery();
+			
+			String world = rs.getString("w");
+			float x = rs.getFloat("x");
+			float y = rs.getFloat("y");
+			float z = rs.getFloat("z");
+			float pitch = rs.getFloat("pitch");
+			float yaw = rs.getFloat("yaw");
+			return new Location(Bukkit.getWorld(world), x, y, z, yaw, pitch);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	@SuppressWarnings("deprecation")
 	private void elevateUser(CommandSender sender, String username, String level){
 		Player player = Bukkit.getPlayer(username);
 		if(player == null){
@@ -294,6 +355,19 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				}
 			}
 		}
+	}
+	
+	private void loadConfig(){
+		reloadConfig();
+		FileConfiguration config = getConfig();
+		
+		aprilFools = config.getBoolean("aprilfools");
+	}
+	
+	private void writeConfig(){
+		FileConfiguration config = getConfig();
+		config.set("aprilfools", aprilFools);
+		saveConfig();
 	}
 	
 	private void createUser(String uuid, String username) throws SQLException{

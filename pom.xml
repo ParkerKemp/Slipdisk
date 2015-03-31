@@ -62,6 +62,7 @@
 							<minimizeJar>true</minimizeJar>
 							<artifactSet>
 								<includes>
+									<include>joda-time:joda-time</include>
 								</includes>
 							</artifactSet>
 						</configuration>
