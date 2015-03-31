@@ -15,19 +15,19 @@ commands:
     usage: Usage - /deleteslip <username>
     permission: slipdisk.deleteslip
     permission-message: No!
-  
+
   elevate:
     description: Elevate a user's privileges in Slipdisk
     usage: Usage - /elevate <username> <level>
     permission: slipdisk.elevate
     permission-message: No!
-  
+
   aprilfools:
     description: Enable chaos
     usage: Usage - /aprilfools <on | off>
     permission: slipdisk.aprilfools
     permission-message: No!
-  	
+
   debug:
     description: Display exceptions
     usage: Usage - /debug [on | off]
