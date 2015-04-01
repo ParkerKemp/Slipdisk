@@ -30,6 +30,7 @@ import org.bukkit.event.block.BlockPhysicsEvent;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 
@@ -47,6 +48,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		getDataFolder().mkdirs();
 		saveDefaultConfig();
 		loadConfig();
+		syncDatabase();
 	}
 	
 	private static void createTables(){
@@ -212,6 +214,11 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			return;
 		Player player = event.getPlayer();
 
+		if(aprilFools){
+			player.teleport(aprilFools());
+			return;
+		}
+		
 		Profile profile = getProfile(sign.getLine(1));
 		if (profile.slip == null) {
 			player.sendMessage(Spinalpack.code(Co.RED)
@@ -241,18 +248,16 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			return;
 		}
 		Location destination;
-		if(!aprilFools)
-			destination = nextSlip(profile.slip, sign);
-		else
-			destination = aprilFools();
+		destination = nextSlip(profile.slip, sign);
+		
 		if(destination == null)
 			return;
 		
 		player.teleport(destination);
 	}
 	
-	Location aprilFools(){
-		String query = "SELECT count(*) AS c FROM slip_slips";
+	private Location aprilFools(){
+		String query = "SELECT COUNT(DISTINCT uid) AS c FROM slip_slips";
 		try {
 			PreparedStatement stmt = Spinalpack.prepareStatement(query);
 			ResultSet rs = stmt.executeQuery();
@@ -271,7 +276,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			stmt = Spinalpack.prepareStatement(query);
 			stmt.setInt(1, sid);
 			rs = stmt.executeQuery();
-			
+			rs.first();
 			String world = rs.getString("w");
 			float x = rs.getFloat("x");
 			float y = rs.getFloat("y");
@@ -283,6 +288,47 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	private void syncDatabase(){
+		new BukkitRunnable(){
+			public void run(){
+				String query = "SELECT sid, w, sx, sy, sz, username FROM slip_slips s JOIN slip_users u ON s.uid = u.uid";
+				PreparedStatement stmt;
+				int count = 0;
+				try {
+					stmt = Spinalpack.prepareStatement(query);
+					ResultSet rs = stmt.executeQuery();
+					while(rs.next()){
+						int sid = rs.getInt("sid");
+						String username = rs.getString("username");
+						String world = rs.getString("w");
+						float x = rs.getFloat("sx");
+						float y = rs.getFloat("sy");
+						float z = rs.getFloat("sz");
+						if(!validSlip(username, world, x, y, z)){
+							unlinkSignWithSid(sid);
+							count++;
+						}
+					}
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+				if(count > 0)
+					System.out.println("Slipdisk: deleted " + count + " out-of-sync records.");
+			}
+		}.runTask(this);
+	}
+	
+	private boolean validSlip(String username, String world, float x, float y, float z){
+		Location loc = new Location(Bukkit.getWorld(world), x, y, z);
+		Block block = loc.getBlock();
+		if(!(block.getState() instanceof Sign))
+			return false;
+		Sign s = (Sign)block.getState();
+		if(!s.getLine(1).equals(username))
+			return false;
+		return true;
 	}
 	
 	@SuppressWarnings("deprecation")
@@ -505,7 +551,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	}
 	
 	private Profile getProfile(Player player){
-		//Should be used when creating slip signs. Creates new profile if none exists
+		//Should be used ONLY when creating slip signs. Creates new profile if none exists
 		
 		String query = "SELECT * FROM slip_users WHERE uuid = ?";
 		String truncName = truncatedName(player.getName());
@@ -516,7 +562,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			ResultSet rs = stmt.executeQuery();
 			if(!rs.first())
 				createUser(uuidString, truncName);
-			else if(rs.getString("username") != truncName){
+			else if(!rs.getString("username").equals(truncName)){
 				query = "UPDATE slip_users SET username = ? WHERE uuid = ?";
 				stmt = Spinalpack.prepareStatement(query);
 				stmt.setString(1, truncName);
