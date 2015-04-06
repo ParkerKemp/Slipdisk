@@ -1,4 +1,4 @@
-package com.spinalcraft.slipdisk;
+package main.java.com.spinalcraft.slipdisk;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,7 +41,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	@Override
 	public void onEnable() {
 		console = Bukkit.getConsoleSender();
-		console.sendMessage(Spinalpack.code(Co.BLUE) + "Slipdisk online!");
+		console.sendMessage(ChatColor.BLUE + "Slipdisk online!");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		
 		createTables();
