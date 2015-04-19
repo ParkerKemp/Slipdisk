@@ -48,6 +48,10 @@
       <id>mvnresository</id>
       <url>http://mvnrepository.com</url>
     </repository>
+    <repository>
+      <id>spinalcraft</id>
+      <url>http://maven.spinalcraft.com</url>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>

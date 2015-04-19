@@ -1,5 +1,5 @@
 name: Slipdisk
-main: com.spinalcraft.slipdisk.Slipdisk
+main: main.java.com.spinalcraft.slipdisk.Slipdisk
 version: 1.0
 
 depend: [Spinalpack]
