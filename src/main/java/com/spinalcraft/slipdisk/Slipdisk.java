@@ -1,4 +1,4 @@
-package com.spinalcraft.slipdisk;
+package main.java.com.spinalcraft.slipdisk;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
