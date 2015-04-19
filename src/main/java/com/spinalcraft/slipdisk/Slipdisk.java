@@ -34,6 +34,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 
+import com.spinalcraft.usernamehistory.UUIDFetcher;
+
 public class Slipdisk extends JavaPlugin implements Listener {
 	ConsoleCommandSender console;
 	private boolean aprilFools;
@@ -335,25 +337,29 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		return true;
 	}
 	
-	@SuppressWarnings("deprecation")
-	private void elevateUser(CommandSender sender, String username, String level){
-		Player player = Bukkit.getPlayer(username);
-		if(player == null){
-			sender.sendMessage(ChatColor.RED + "Player couldn't be found!");
-			return;
-		}
-		String query = "UPDATE slip_info i JOIN slip_users u ON i.uid = u.uid AND u.uuid = ? SET i.role = ?";
-		try {
-			PreparedStatement stmt = Spinalpack.prepareStatement(query);
-			stmt.setString(1, player.getUniqueId().toString());
-			stmt.setString(2, level);
-			stmt.executeUpdate();
-		} catch (SQLException e) {
-			sender.sendMessage(ChatColor.RED + "Couldn't find that privilege level in the database!");
-			e.printStackTrace();
-			return;
-		}
-		sender.sendMessage(ChatColor.BLUE + username + ChatColor.GOLD + " was changed to " + ChatColor.GREEN + level + ChatColor.GOLD + "!");
+	private void elevateUser(final CommandSender sender, final String username, final String level){
+		new Thread(){
+			public void run(){
+				
+				UUID uuid = UUIDFetcher.fetch(username);
+				if(uuid == null){
+					sender.sendMessage(ChatColor.RED + "Slipdisk: Unable to elevate privileges: Player couldn't be found!");
+					return;
+				}
+				String query = "UPDATE slip_info i JOIN slip_users u ON i.uid = u.uid AND u.uuid = ? SET i.role = ?";
+				try {
+					PreparedStatement stmt = Spinalpack.prepareStatement(query);
+					stmt.setString(1, uuid.toString());
+					stmt.setString(2, level);
+					stmt.executeUpdate();
+				} catch (SQLException e) {
+					sender.sendMessage(ChatColor.RED + "Slipdisk: Unable to elevate privileges: Couldn't find that privilege level in the database!");
+					e.printStackTrace();
+					return;
+				}
+				sender.sendMessage(ChatColor.BLUE + username + ChatColor.GOLD + " was changed to " + ChatColor.GREEN + level + ChatColor.GOLD + "!");
+			}
+		}.run();
 	}
 	
 	private Location nextSlip(Slip slip, Sign sign){
