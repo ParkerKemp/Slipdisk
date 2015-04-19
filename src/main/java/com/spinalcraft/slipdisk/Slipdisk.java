@@ -1,5 +1,6 @@
-package main.java.com.spinalcraft.slipdisk;
+package com.spinalcraft.slipdisk;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -341,7 +342,12 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		new Thread(){
 			public void run(){
 				
-				UUID uuid = UUIDFetcher.fetch(username);
+				UUID uuid = null;
+				try {
+					uuid = UUIDFetcher.fetch(username);
+				} catch (IOException e1) {
+					e1.printStackTrace();
+				}
 				if(uuid == null){
 					sender.sendMessage(ChatColor.RED + "Slipdisk: Unable to elevate privileges: Player couldn't be found!");
 					return;
