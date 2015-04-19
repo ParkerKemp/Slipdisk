@@ -167,6 +167,21 @@ public class Slipdisk extends JavaPlugin implements Listener {
 
 		event.setLine(1, profile.username);
 		
+		setSignLabels(profile);
+
+		try {
+			insertEndpoint(profile, event.getBlock().getLocation(), player.getLocation());
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		player.sendMessage(Spinalpack.code(Co.GOLD)
+				+ "Created a new slip gate!");
+		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName()
+				+ " created a slip gate!");
+	}
+	
+	private void setSignLabels(Profile profile){
 		Block block;
 		Sign tempSign;
 		for(int i = 0; i < Slip.MAX_SLIPS; i++){
@@ -181,17 +196,6 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				}
 			}
 		}
-
-		try {
-			insertEndpoint(profile, event.getBlock().getLocation(), player.getLocation());
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		player.sendMessage(Spinalpack.code(Co.GOLD)
-				+ "Created a new slip gate!");
-		console.sendMessage(Spinalpack.code(Co.GOLD) + player.getName()
-				+ " created a slip gate!");
 	}
 
 	@EventHandler(priority = EventPriority.NORMAL)
@@ -556,6 +560,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		String query = "SELECT * FROM slip_users WHERE uuid = ?";
 		String truncName = truncatedName(player.getName());
 		String uuidString = player.getUniqueId().toString();
+		boolean updateSigns = false;
 		try {
 			PreparedStatement stmt = Spinalpack.prepareStatement(query);
 			stmt.setString(1, uuidString);
@@ -568,11 +573,17 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				stmt.setString(1, truncName);
 				stmt.setString(2, uuidString);
 				stmt.executeUpdate();
+				updateSigns = true;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		return getProfile(player.getUniqueId());
+		
+		Profile profile = getProfile(player.getUniqueId());
+		if(updateSigns)
+			setSignLabels(profile);
+		
+		return profile;
 	}
 	
 	private Profile getProfile(UUID uuid){
