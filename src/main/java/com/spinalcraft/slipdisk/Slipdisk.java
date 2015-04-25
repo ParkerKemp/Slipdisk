@@ -1,4 +1,4 @@
-package main.java.com.spinalcraft.slipdisk;
+package com.spinalcraft.slipdisk;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
@@ -7,8 +7,8 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.UUID;
 
-import main.java.com.spinalcraft.spinalpack.Co;
-import main.java.com.spinalcraft.spinalpack.Spinalpack;
+import com.spinalcraft.spinalpack.Co;
+import com.spinalcraft.spinalpack.Spinalpack;
 import net.md_5.bungee.api.ChatColor;
 
 import org.bukkit.Bukkit;

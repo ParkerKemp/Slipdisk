@@ -1,4 +1,4 @@
-package main.java.com.spinalcraft.slipdisk;
+package com.spinalcraft.slipdisk;
 
 import org.bukkit.Location;
 

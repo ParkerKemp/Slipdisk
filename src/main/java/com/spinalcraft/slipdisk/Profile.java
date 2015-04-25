@@ -1,4 +1,4 @@
-package main.java.com.spinalcraft.slipdisk;
+package com.spinalcraft.slipdisk;
 
 public class Profile {
 	public Slip slip;
