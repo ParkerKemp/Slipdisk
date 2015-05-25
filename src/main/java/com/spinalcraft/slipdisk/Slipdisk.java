@@ -344,7 +344,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				
 				UUID uuid = null;
 				try {
-					uuid = UUIDFetcher.fetch(username);
+					uuid = UUIDFetcher.getUUIDOf(username);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
