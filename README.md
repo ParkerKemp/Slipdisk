@@ -14,7 +14,7 @@ The Spinalcraft Suite is a collection of Minecraft plugins developed primarily f
 
 Other projects in this collection:
 
-[Slipdisk](https://github.com/ParkerKemp/Slipdisk)<br>
+[Spinalpack](https://github.com/ParkerKemp/Spinalpack)<br>
 [UsernameHistory](https://github.com/ParkerKemp/UsernameHistory)<br>
 [ChunksBlow](https://github.com/ParkerKemp/ChunksBlow)<br>
 [StopStart](https://github.com/ParkerKemp/Stopstart)<br>
