@@ -227,7 +227,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		}
 		
 		Profile profile = getProfile(sign.getLine(1));
-		if (profile.slip == null) {
+		if (profile == null || profile.slip == null) {
 			player.sendMessage(Spinalpack.code(Co.RED)
 					+ "Error: Slip owner not found in database!");
 			return;
