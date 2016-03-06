@@ -219,7 +219,6 @@ public class Slipdisk extends JavaPlugin implements Listener {
 							+ "You're not allowed to use slips!");
 			return;
 		}
-
 		
 		Player player = event.getPlayer();
 
