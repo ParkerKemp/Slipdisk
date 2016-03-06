@@ -354,6 +354,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 				}
 				String query = "UPDATE slip_info i JOIN slip_users u ON i.uid = u.uid AND u.uuid = ? SET i.role = ?";
 				try {
+					createUserIfNotExists(uuid.toString(), username);
+					
 					PreparedStatement stmt = Spinalpack.prepareStatement(query);
 					stmt.setString(1, uuid.toString());
 					stmt.setString(2, level);
@@ -430,6 +432,16 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		FileConfiguration config = getConfig();
 		config.set("aprilfools", aprilFools);
 		saveConfig();
+	}
+	
+	private void createUserIfNotExists(String uuid, String username) throws SQLException{
+		String query = "SELECT * FROM slip_users WHERE uuid = ?";
+		String truncName = truncatedName(username);
+		PreparedStatement stmt = Spinalpack.prepareStatement(query);
+		stmt.setString(1, uuid);
+		ResultSet rs = stmt.executeQuery();
+		if(!rs.first())
+			createUser(uuid, truncName);
 	}
 	
 	private void createUser(String uuid, String username) throws SQLException{
