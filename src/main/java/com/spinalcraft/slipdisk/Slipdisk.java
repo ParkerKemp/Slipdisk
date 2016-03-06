@@ -209,6 +209,10 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		if (!(event.getClickedBlock().getState() instanceof Sign))
 			return;
 
+		Sign sign = (Sign) event.getClickedBlock().getState();
+		if (!slipSign(sign))
+			return;
+		
 		if (!event.getPlayer().hasPermission("slipdisk.useslip")) {
 			event.getPlayer().sendMessage(
 					Spinalpack.code(Co.RED)
@@ -216,9 +220,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			return;
 		}
 
-		Sign sign = (Sign) event.getClickedBlock().getState();
-		if (!slipSign(sign))
-			return;
+		
 		Player player = event.getPlayer();
 
 		if(aprilFools){
