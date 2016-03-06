@@ -229,12 +229,12 @@ public class Slipdisk extends JavaPlugin implements Listener {
 		Profile profile = getProfile(sign.getLine(1));
 		if (profile.slip == null) {
 			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Critical database error!");
+					+ "Error: Slip owner not found in database!");
 			return;
 		}
 		if (profile.slip.numEndpoints() == 0) {
 			player.sendMessage(Spinalpack.code(Co.RED)
-					+ "Error: Unable to find this endpoint in the database!");
+					+ "Error: Slip gate not found in database!");
 			return;
 		}
 		if (profile.slip.numEndpoints() < 2) {
@@ -558,7 +558,8 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			stmt = Spinalpack.prepareStatement(query);
 			stmt.setString(1, username);
 			ResultSet rs = stmt.executeQuery();
-			rs.first();
+			if(!rs.first())
+				return null;
 			return getProfile(UUID.fromString(rs.getString("uuid")));
 		} catch (SQLException e) {
 			e.printStackTrace();
