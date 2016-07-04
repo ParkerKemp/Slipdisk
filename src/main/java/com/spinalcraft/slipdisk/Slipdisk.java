@@ -583,7 +583,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 	private Profile getProfile(Player player){
 		//Should be used ONLY when creating slip signs. Creates new profile if none exists
 		
-		String query = "SELECT * FROM slip_users WHERE uuid = ?";
+		String query = "SELECT * FROM slip_users INNER JOIN slip_info WHERE uuid = ?";
 		String truncName = truncatedName(player.getName());
 		String uuidString = player.getUniqueId().toString();
 		boolean updateSigns = false;
