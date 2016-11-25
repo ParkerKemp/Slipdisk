@@ -42,12 +42,9 @@ public class Slipdisk extends SpinalcraftPlugin implements Listener {
 	
 	@Override
 	public void onEnable() {
-		console = Bukkit.getConsoleSender();
-		console.sendMessage(ChatColor.BLUE + "Slipdisk online!");
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		
 		createTables();
-		getDataFolder().mkdirs();
 		saveDefaultConfig();
 		loadConfig();
 		syncDatabase();

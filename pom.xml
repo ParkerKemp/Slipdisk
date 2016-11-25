@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
 	<groupId>com.spinalcraft</groupId>
 	<artifactId>Slipdisk</artifactId>
-	<version>1.0</version>
+	<version>1.1.0</version>
 	<name>Slipdisk</name>
 	
 	<properties>
@@ -41,7 +41,7 @@
 			<groupId>com.spinalcraft</groupId>
 			<artifactId>Spinalpack</artifactId>
 			<version>1.1.0</version>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.spinalcraft</groupId>
@@ -72,6 +72,7 @@
 							<minimizeJar>true</minimizeJar>
 							<artifactSet>
 								<includes>
+									<include>com.spinalcraft:Spinalpack</include>
 									<include>joda-time:joda-time</include>
 								</includes>
 							</artifactSet>
