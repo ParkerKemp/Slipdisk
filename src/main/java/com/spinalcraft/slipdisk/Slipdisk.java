@@ -42,6 +42,8 @@ public class Slipdisk extends SpinalcraftPlugin implements Listener {
 	
 	@Override
 	public void onEnable() {
+		console = Bukkit.getConsoleSender();
+		
 		getServer().getPluginManager().registerEvents((Listener) this, this);
 		
 		createTables();
