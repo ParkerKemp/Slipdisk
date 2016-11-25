@@ -603,6 +603,7 @@ public class Slipdisk extends JavaPlugin implements Listener {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+			return null;
 		}
 		
 		Profile profile = getProfile(player.getUniqueId());
