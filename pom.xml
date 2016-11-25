@@ -39,8 +39,8 @@
 		</dependency>
 		<dependency>
 			<groupId>com.spinalcraft</groupId>
-			<artifactId>Spinalpack</artifactId>
-			<version>1.1.0</version>
+			<artifactId>Skull</artifactId>
+			<version>1.0</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
@@ -72,7 +72,7 @@
 							<minimizeJar>true</minimizeJar>
 							<artifactSet>
 								<includes>
-									<include>com.spinalcraft:Spinalpack</include>
+									<include>com.spinalcraft:Skull</include>
 									<include>joda-time:joda-time</include>
 								</includes>
 							</artifactSet>

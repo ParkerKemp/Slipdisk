@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.util.Date;
 import java.util.UUID;
 
-import com.spinalcraft.spinalpack.SpinalcraftPlugin;
 import net.md_5.bungee.api.ChatColor;
 
 import org.bukkit.Bukkit;
@@ -34,6 +33,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 
+import com.spinalcraft.skull.SpinalcraftPlugin;
 import com.spinalcraft.usernamehistory.UUIDFetcher;
 
 public class Slipdisk extends SpinalcraftPlugin implements Listener {
