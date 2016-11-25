@@ -2,8 +2,6 @@ name: Slipdisk
 main: com.spinalcraft.slipdisk.Slipdisk
 version: 1.0
 
-depend: [Spinalpack]
-
 commands:
   slipdisk:
     description: Learn about Slipdisk
