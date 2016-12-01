@@ -342,7 +342,7 @@ public class Slip {
 		int count = 0;
 		
 		for (int i = 0; i < this.gates.length; i++){
-			if (this.gates[i].validate(this.username)){
+			if (this.gates[i] != null && this.gates[i].validate(this.username)){
 				try {
 					DatabaseClient.deleteGateForSid(this.gates[i].sid);
 					
