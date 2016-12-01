@@ -116,7 +116,7 @@ public class Slip {
 		}
 	}
 	
-	private void verifyUsername(String username){
+	public void syncUsername(String username){
 		if (!this.username.equals(username)){
 			try {
 				DatabaseClient.updateProfileWithUsername(this.uid, username);
@@ -231,7 +231,6 @@ public class Slip {
 		try {
 			slip.attachGates(DatabaseClient.selectSlipFromUuid(player.getUniqueId()));
 			slip.attachProfileData(DatabaseClient.selectProfileDataFromUuid(player.getUniqueId()));
-			slip.verifyUsername(Utils.truncatedName(player.getName()));
 	
 			return slip;
 		} catch (SQLException e) {
@@ -247,7 +246,7 @@ public class Slip {
 		try {
 			slip.attachGates(DatabaseClient.selectSlipFromUsername(username));
 			slip.attachProfileData(DatabaseClient.selectProfileDataFromUsername(username));
-	
+			
 			return slip;
 		} catch (SQLException e) {
 			e.printStackTrace();

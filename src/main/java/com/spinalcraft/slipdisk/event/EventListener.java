@@ -48,7 +48,10 @@ public class EventListener implements Listener{
 			return;
 		}
 		
-		if(!slip.hasValidProfile()){
+		if(slip.hasValidProfile()){
+			slip.syncUsername(Utils.truncatedName(player.getName()));
+		}
+		else{
 			slip.createProfileForPlayer(player);
 		}
 
