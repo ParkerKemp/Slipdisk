@@ -289,7 +289,7 @@ public class Slip {
 	
 	public Gate nextGate(Sign sign){
 		for(int i = 0; i < Slip.MAX_GATES; i++)
-			if(this.gates[i].signLocation.equals(sign.getLocation())){
+			if((this.gates[i] != null) && (this.gates[i].signLocation.equals(sign.getLocation()))){
 				int j = i;
 				
 				do{
