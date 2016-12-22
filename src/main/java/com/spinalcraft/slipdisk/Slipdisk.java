@@ -372,7 +372,7 @@ public class Slipdisk extends SpinalcraftPlugin implements Listener {
 	
 	private Location nextSlip(Slip slip, Sign sign){
 		for(int i = 0; i < Slip.MAX_SLIPS; i++)
-			if(slip.signs[i].sign.equals(sign.getLocation())){
+			if((slip.signs[i] != null) && (slip.signs[i].sign.equals(sign.getLocation()))){
 				int j = i;
 				do{
 					j = (j + 1) % Slip.MAX_SLIPS;	
